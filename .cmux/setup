@@ -1,0 +1,13 @@
+#!/bin/bash
+# .cmux/setup — Bootstrap worktree for parallel Claude Code sessions
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --git-common-dir | xargs dirname)"
+
+# Symlink env files from main checkout
+for env_file in .env .env.local .env.development; do
+  [ -f "$REPO_ROOT/$env_file" ] && ln -sf "$REPO_ROOT/$env_file" "$env_file"
+done
+
+# Install Node.js dependencies
+npm ci

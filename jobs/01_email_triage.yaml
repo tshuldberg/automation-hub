@@ -1,0 +1,70 @@
+id: "email-triage-post-sales-install"
+version: "1.0"
+owner_team: "implementation-ops"
+status: "dry_run"
+
+objective: >
+  Review new post-sales install emails, extract actionable work, map work to PM projects,
+  propose tasks, and draft outbound responses with a voice-ready briefing.
+
+schedule:
+  timezone: "America/Los_Angeles"
+  rrule: "FREQ=HOURLY;INTERVAL=2;BYDAY=MO,TU,WE,TH,FR"
+  cron_fallback: "0 */2 * * 1-5"
+
+providers:
+  openai:
+    runtime: "responses_api_background"
+    tool_transport: ["mcp", "connectors"]
+  claude:
+    runtime: "headless_or_agent_sdk"
+    tool_transport: ["mcp"]
+
+inputs:
+  email:
+    capabilities:
+      - "list_threads"
+      - "get_thread"
+    filters:
+      folders: ["Inbox"]
+      include_keywords: ["implementation", "install", "go-live", "kickoff", "timeline"]
+      exclude_keywords: ["newsletter", "receipt", "marketing"]
+  pm:
+    tools:
+      - "pm.list_projects"
+      - "pm.search_tasks"
+      - "pm.get_gantt_snapshot"
+  calendar:
+    capabilities:
+      - "list_events"
+    lookahead_days: 21
+
+steps:
+  - "Fetch unread or newly changed email threads since the last cursor."
+  - "Classify relevance to post-sales installation operations."
+  - "Extract action items, owners, blockers, and dates from each relevant thread."
+  - "Resolve target PM project using account name + project metadata."
+  - "Check for duplicate tasks by external reference and semantic match."
+  - "Build canonical task proposals with confidence score and dependency hints."
+  - "Estimate due dates using calendar load and existing gantt dependencies."
+  - "Generate concise reply drafts and a short voice review script."
+
+approval:
+  read_tools: "auto"
+  write_tools: "always"
+  allowed_write_tools:
+    - "pm.create_task"
+    - "pm.update_task"
+    - "pm.create_comment"
+
+outputs:
+  summary_markdown: "./runs/{{run_id}}/summary.md"
+  proposed_tasks_json: "./runs/{{run_id}}/tasks.proposed.json"
+  proposed_replies_json: "./runs/{{run_id}}/replies.proposed.json"
+  voice_brief_markdown: "./runs/{{run_id}}/voice_brief.md"
+  audit_log_json: "./runs/{{run_id}}/audit.log.json"
+
+success_criteria:
+  - ">= 95% of actionable install emails are categorized correctly."
+  - "No PM write occurs without approval."
+  - "No duplicate PM task is created for the same source reference."

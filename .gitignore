@@ -1,0 +1,22 @@
+node_modules/
+dist/
+
+config/runtime.yaml
+state/*.json
+runs/*
+!runs/.gitkeep
+
+logs/
+
+# Local secrets / credentials
+.env
+.env.*
+.envrc
+*.pem
+*.p8
+*.p12
+*.key
+*.mobileprovision
+.npmrc
+.netrc
+.claude/settings.local.json

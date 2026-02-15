@@ -1,0 +1,92 @@
+version: "1.0"
+
+adapters:
+  email:
+    enabled: true
+    provider_options:
+      - name: "gmail_connector"
+        type: "openai_connector_or_mcp"
+      - name: "outlook_connector"
+        type: "openai_connector_or_mcp"
+    capabilities:
+      - "list_threads"
+      - "get_thread"
+      - "draft_reply"
+      - "send_reply"
+
+  calendar:
+    enabled: true
+    provider_options:
+      - name: "google_calendar_connector"
+        type: "openai_connector_or_mcp"
+      - name: "outlook_calendar_connector"
+        type: "openai_connector_or_mcp"
+    capabilities:
+      - "list_events"
+      - "list_free_busy"
+      - "create_event"
+      - "update_event"
+
+  reminders_apple:
+    enabled: true
+    provider_options:
+      - name: "apple_reminders_mcp"
+        type: "local_mcp_bridge"
+    capabilities:
+      - "list_reminders"
+      - "create_reminder"
+      - "update_reminder"
+      - "mark_completed"
+
+  messages:
+    enabled: true
+    provider_options:
+      - name: "zapier_messages_bridge"
+        type: "zapier_mcp_or_webhook"
+      - name: "local_messages_mcp"
+        type: "local_mcp_bridge"
+    capabilities:
+      - "list_messages"
+      - "draft_message"
+      - "send_message"
+
+  slack:
+    enabled: true
+    provider_options:
+      primary: slack_mcp
+    capabilities:
+      - list_messages
+      - send_message
+      - search_messages
+      - read_thread
+      - read_channel
+    self_user_id: "U01BBL118JC"
+
+  superwhisper:
+    enabled: true
+    provider_options:
+      - name: "superwhisper_file_ingest"
+        type: "local_file_adapter"
+    inputs:
+      transcript_paths:
+        - "~/Library/Application Support/Superwhisper"
+    capabilities:
+      - "list_transcripts"
+      - "read_transcript"
+      - "classify_transcript"
+      - "extract_actions"
+
+policies:
+  approvals:
+    read_only: "auto"
+    write_actions: "always"
+  dedupe:
+    keys:
+      - "channel"
+      - "source_reference"
+      - "semantic_fingerprint"
+
+references:
+  optional_context_repos:
+    - path: "/Users/trey/Desktop/Apps/SH/shiphawk-dev"
+      mode: "read_only"

@@ -1,0 +1,79 @@
+id: "unified-channel-consolidation"
+version: "1.0"
+owner_team: "personal-ops"
+status: "dry_run"
+
+objective: >
+  Consolidate email, calendar, reminders, messages, and Superwhisper transcripts into a
+  single prioritized action stream with response drafts and explicit approval gates.
+
+schedule:
+  timezone: "America/Los_Angeles"
+  rrule: "FREQ=HOURLY;INTERVAL=1"
+  cron_fallback: "0 * * * *"
+
+providers:
+  openai:
+    runtime: "responses_api_background"
+    tool_transport: ["mcp", "connectors"]
+  claude:
+    runtime: "headless_or_agent_sdk"
+    tool_transport: ["mcp"]
+
+inputs:
+  email:
+    capabilities:
+      - "list_threads"
+      - "get_thread"
+    window_hours: 24
+  calendar:
+    capabilities:
+      - "list_events"
+      - "list_free_busy"
+    lookahead_days: 21
+  reminders:
+    capabilities:
+      - "list_reminders"
+  messages:
+    capabilities:
+      - "list_messages"
+    include_self_messages: true
+  superwhisper:
+    capabilities:
+      - "list_transcripts"
+      - "read_transcript"
+    window_hours: 72
+
+steps:
+  - "Load new items from each channel using per-channel cursors."
+  - "Normalize each item to the shared event model."
+  - "Resolve duplicates and merge related threads/conversations."
+  - "Extract tasks, due-date candidates, and blocking dependencies."
+  - "Cross-check due-date feasibility with calendar availability."
+  - "Build outbound draft responses for message/email follow-ups."
+  - "Build a single prioritized action queue."
+
+approval:
+  read_tools: "auto"
+  write_tools: "always"
+  allowed_write_tools:
+    - "pm.create_task"
+    - "pm.update_task"
+    - "pm.create_comment"
+    - "messages.send_message"
+    - "email.send_reply"
+    - "reminders.create_reminder"
+    - "reminders.update_reminder"
+
+outputs:
+  summary_markdown: "./runs/{{run_id}}/summary.md"
+  unified_queue_json: "./runs/{{run_id}}/unified_queue.json"
+  proposed_tasks_json: "./runs/{{run_id}}/tasks.proposed.json"
+  proposed_replies_json: "./runs/{{run_id}}/replies.proposed.json"
+  proposed_reminders_json: "./runs/{{run_id}}/reminders.proposed.json"
+  audit_log_json: "./runs/{{run_id}}/audit.log.json"
+
+success_criteria:
+  - "All channels are represented in one queue with source evidence."
+  - "No outbound write action executes without approval."
+  - "Duplicate tasks and duplicate message drafts are suppressed."

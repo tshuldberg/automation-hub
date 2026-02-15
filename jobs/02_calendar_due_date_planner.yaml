@@ -1,0 +1,64 @@
+id: "calendar-aware-due-date-planner"
+version: "1.0"
+owner_team: "implementation-ops"
+status: "dry_run"
+
+objective: >
+  Recommend due dates and sequencing for implementation tasks using team calendar capacity,
+  task dependencies, and project go-live milestones.
+
+schedule:
+  timezone: "America/Los_Angeles"
+  rrule: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=7;BYMINUTE=30"
+  cron_fallback: "30 7 * * 1-5"
+
+providers:
+  openai:
+    runtime: "responses_api_background"
+    tool_transport: ["mcp", "connectors"]
+  claude:
+    runtime: "headless_or_agent_sdk"
+    tool_transport: ["mcp"]
+
+inputs:
+  pm:
+    tools:
+      - "pm.list_projects"
+      - "pm.get_gantt_snapshot"
+      - "pm.search_tasks"
+    filters:
+      implementation_type: "post_sales_install"
+      active_statuses: ["planned", "active", "at_risk"]
+  calendar:
+    capabilities:
+      - "list_events"
+      - "list_free_busy"
+    planning_window_days: 45
+
+steps:
+  - "Load active projects and their gantt snapshots."
+  - "Build dependency graph and identify critical path tasks."
+  - "Pull owner calendars and estimate practical work windows."
+  - "Detect date conflicts: dependencies broken, overbooked owners, milestone slippage."
+  - "Propose revised start and due dates with rationale and confidence."
+  - "Generate escalation list for unresolved blockers."
+
+approval:
+  read_tools: "auto"
+  write_tools: "always"
+  allowed_write_tools:
+    - "pm.update_task"
+    - "pm.upsert_dependencies"
+    - "pm.create_comment"
+
+outputs:
+  summary_markdown: "./runs/{{run_id}}/summary.md"
+  due_date_proposals_json: "./runs/{{run_id}}/due_dates.proposed.json"
+  risk_register_json: "./runs/{{run_id}}/capacity_risks.json"
+  escalation_markdown: "./runs/{{run_id}}/escalations.md"
+  audit_log_json: "./runs/{{run_id}}/audit.log.json"
+
+success_criteria:
+  - "Each due-date proposal includes dependency and calendar evidence."
+  - "No automatic due-date writes without approval."
+  - "At-risk milestones are surfaced before business-day start."

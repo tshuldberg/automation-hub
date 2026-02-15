@@ -1,0 +1,222 @@
+version: "1.0"
+name: "pm-mcp"
+description: "Project management MCP contract for ShipHawk post-sales install operations."
+
+policies:
+  default_mode: "read_only"
+  approval_required_for:
+    - "task_write"
+    - "comment_write"
+    - "dependency_write"
+  idempotency:
+    required_for_write_tools: true
+    key_fields:
+      - "source_system"
+      - "source_reference"
+      - "operation"
+
+capabilities:
+  - project_read
+  - schedule_read
+  - task_read
+  - task_write
+  - comment_write
+  - dependency_write
+
+tools:
+  - name: "pm.list_projects"
+    mode: "read_only"
+    purpose: "List projects filtered to post-sales install implementations."
+    input_schema:
+      type: object
+      properties:
+        account_name:
+          type: string
+        implementation_type:
+          type: string
+          enum: ["post_sales_install", "all"]
+          default: "post_sales_install"
+        status:
+          type: array
+          items:
+            type: string
+      additionalProperties: false
+    output_schema:
+      type: object
+      properties:
+        projects:
+          type: array
+          items:
+            type: object
+            properties:
+              project_id: { type: string }
+              name: { type: string }
+              account_name: { type: string }
+              status: { type: string }
+              start_date: { type: string, format: date }
+              target_go_live_date: { type: string, format: date }
+            required: [project_id, name, status]
+      required: [projects]
+
+  - name: "pm.get_gantt_snapshot"
+    mode: "read_only"
+    purpose: "Fetch tasks, dependencies, and milestones for a project date range."
+    input_schema:
+      type: object
+      required: [project_id, from_date, to_date]
+      properties:
+        project_id: { type: string }
+        from_date: { type: string, format: date }
+        to_date: { type: string, format: date }
+      additionalProperties: false
+    output_schema:
+      type: object
+      properties:
+        tasks:
+          type: array
+          items:
+            type: object
+            properties:
+              task_id: { type: string }
+              title: { type: string }
+              owner: { type: string }
+              status: { type: string }
+              start_date: { type: string, format: date }
+              due_date: { type: string, format: date }
+              dependency_task_ids:
+                type: array
+                items: { type: string }
+            required: [task_id, title, status]
+        milestones:
+          type: array
+          items:
+            type: object
+            properties:
+              milestone_id: { type: string }
+              title: { type: string }
+              due_date: { type: string, format: date }
+            required: [milestone_id, title]
+      required: [tasks, milestones]
+
+  - name: "pm.search_tasks"
+    mode: "read_only"
+    purpose: "Locate tasks by text, status, owner, or external reference."
+    input_schema:
+      type: object
+      required: [project_id]
+      properties:
+        project_id: { type: string }
+        query: { type: string }
+        status:
+          type: array
+          items: { type: string }
+        owner: { type: string }
+        external_ref: { type: string }
+      additionalProperties: false
+    output_schema:
+      type: object
+      properties:
+        tasks:
+          type: array
+          items:
+            type: object
+            properties:
+              task_id: { type: string }
+              title: { type: string }
+              status: { type: string }
+              owner: { type: string }
+              due_date: { type: string, format: date }
+              external_ref: { type: string }
+            required: [task_id, title, status]
+      required: [tasks]
+
+  - name: "pm.create_task"
+    mode: "task_write"
+    purpose: "Create a new PM task from approved automation output."
+    input_schema:
+      type: object
+      required: [project_id, task, idempotency_key]
+      properties:
+        project_id: { type: string }
+        task:
+          $ref: "./schemas/canonical_task.schema.json"
+        idempotency_key: { type: string }
+      additionalProperties: false
+    output_schema:
+      type: object
+      properties:
+        task_id: { type: string }
+        created: { type: boolean }
+      required: [task_id, created]
+
+  - name: "pm.update_task"
+    mode: "task_write"
+    purpose: "Update due dates, owners, or status for approved tasks."
+    input_schema:
+      type: object
+      required: [task_id, patch, idempotency_key]
+      properties:
+        task_id: { type: string }
+        patch:
+          type: object
+          properties:
+            title: { type: string }
+            owner: { type: string }
+            status: { type: string }
+            start_date: { type: string, format: date }
+            due_date: { type: string, format: date }
+            priority: { type: string, enum: ["P0", "P1", "P2", "P3"] }
+        idempotency_key: { type: string }
+      additionalProperties: false
+    output_schema:
+      type: object
+      properties:
+        task_id: { type: string }
+        updated: { type: boolean }
+      required: [task_id, updated]
+
+  - name: "pm.upsert_dependencies"
+    mode: "dependency_write"
+    purpose: "Write dependency edges between tasks in the Gantt graph."
+    input_schema:
+      type: object
+      required: [project_id, edges, idempotency_key]
+      properties:
+        project_id: { type: string }
+        edges:
+          type: array
+          items:
+            type: object
+            required: [predecessor_task_id, successor_task_id]
+            properties:
+              predecessor_task_id: { type: string }
+              successor_task_id: { type: string }
+              type:
+                type: string
+                enum: ["finish_to_start", "start_to_start", "finish_to_finish", "start_to_finish"]
+                default: "finish_to_start"
+        idempotency_key: { type: string }
+      additionalProperties: false
+    output_schema:
+      type: object
+      properties:
+        updated_edges: { type: integer }
+      required: [updated_edges]
+
+  - name: "pm.create_comment"
+    mode: "comment_write"
+    purpose: "Attach evidence or rationale to a PM task."
+    input_schema:
+      type: object
+      required: [task_id, body, idempotency_key]
+      properties:
+        task_id: { type: string }
+        body: { type: string }
+        idempotency_key: { type: string }
+      additionalProperties: false
+    output_schema:
+      type: object
+      properties:
+        comment_id: { type: string }
+        created: { type: boolean }
+      required: [comment_id, created]

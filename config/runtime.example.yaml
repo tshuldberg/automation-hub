@@ -1,0 +1,34 @@
+project:
+  name: "automation-hub"
+  timezone: "America/Los_Angeles"
+
+providers:
+  active: "openai" # openai | claude
+  openai:
+    mode: "responses_background"
+    model: "gpt-5"
+  claude:
+    mode: "headless_or_agent_sdk"
+    model: "claude-sonnet"
+
+connectors:
+  email:
+    provider: "gmail" # gmail | outlook
+    mcp_server: "email-mcp"
+  calendar:
+    provider: "google_calendar" # google_calendar | outlook_calendar
+    mcp_server: "calendar-mcp"
+  pm:
+    provider: "custom_pm"
+    mcp_server: "pm-mcp"
+
+paths:
+  jobs_dir: "./jobs"
+  schema_dir: "./schemas"
+  policy_file: "./policies/approval_policy.yaml"
+  state_dir: "./state"
+  runs_dir: "./runs"
+
+references:
+  shiphawk_dev_path: "/Users/trey/Desktop/Apps/SH/shiphawk-dev"
+  shiphawk_dev_read_only: true

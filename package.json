@@ -1,0 +1,30 @@
+{
+  "name": "automation-hub",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "job:email-triage": "npm run build --silent && node dist/cli.js run-email-triage",
+    "job:email-triage:dry-run": "npm run build --silent && node dist/cli.js run-email-triage --dry-run",
+    "job:due-date-planner": "npm run build --silent && node dist/cli.js run-due-date-planner",
+    "job:due-date-planner:dry-run": "npm run build --silent && node dist/cli.js run-due-date-planner --dry-run",
+    "job:gantt-drift": "npm run build --silent && node dist/cli.js run-gantt-drift",
+    "job:gantt-drift:dry-run": "npm run build --silent && node dist/cli.js run-gantt-drift --dry-run",
+    "job:channel-consolidation": "npm run build --silent && node dist/cli.js run-channel-consolidation",
+    "job:channel-consolidation:dry-run": "npm run build --silent && node dist/cli.js run-channel-consolidation --dry-run",
+    "listener:slack": "npm run build --silent && node dist/listener-cli.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@slack/bolt": "^4.6.0",
+    "yaml": "^2.8.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "typescript": "^5.9.2",
+    "vitest": "^4.0.18"
+  }
+}

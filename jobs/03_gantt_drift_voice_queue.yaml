@@ -1,0 +1,64 @@
+id: "gantt-drift-and-voice-queue"
+version: "1.0"
+owner_team: "implementation-ops"
+status: "dry_run"
+
+objective: >
+  Detect drift between PM gantt timelines and real execution signals from email/task activity,
+  then generate a voice-first review queue with actionable decisions.
+
+schedule:
+  timezone: "America/Los_Angeles"
+  rrule: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=16;BYMINUTE=30"
+  cron_fallback: "30 16 * * 1-5"
+
+providers:
+  openai:
+    runtime: "responses_api_background"
+    tool_transport: ["mcp", "connectors"]
+  claude:
+    runtime: "headless_or_agent_sdk"
+    tool_transport: ["mcp"]
+
+inputs:
+  pm:
+    tools:
+      - "pm.list_projects"
+      - "pm.get_gantt_snapshot"
+      - "pm.search_tasks"
+  email:
+    capabilities:
+      - "list_threads"
+      - "get_thread"
+    window_hours: 24
+  optional_voice:
+    capabilities:
+      - "text_to_speech"
+    voice_output_format: ["markdown_script", "ssml", "audio_file_path"]
+
+steps:
+  - "Load each active implementation project's planned timeline."
+  - "Compare planned dates against latest task status and email-derived execution signals."
+  - "Flag drift categories: late start, blocked dependency, scope increase, owner capacity risk."
+  - "Produce corrective actions: task updates, dependency changes, stakeholder comms."
+  - "Generate a voice review queue with one short script per decision item."
+  - "Generate corresponding email reply drafts for stakeholder approval."
+
+approval:
+  read_tools: "auto"
+  write_tools: "always"
+  allowed_write_tools:
+    - "pm.update_task"
+    - "pm.create_comment"
+
+outputs:
+  summary_markdown: "./runs/{{run_id}}/summary.md"
+  schedule_drift_json: "./runs/{{run_id}}/schedule_drift.json"
+  voice_queue_markdown: "./runs/{{run_id}}/voice_queue.md"
+  response_drafts_json: "./runs/{{run_id}}/responses.proposed.json"
+  audit_log_json: "./runs/{{run_id}}/audit.log.json"
+
+success_criteria:
+  - "Drift alerts include evidence from PM + email context."
+  - "Voice queue items map one-to-one with actionable decisions."
+  - "No write action executes without explicit approval."

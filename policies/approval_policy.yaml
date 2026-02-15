@@ -1,0 +1,63 @@
+version: "1.0"
+default_decision: "deny"
+
+rules:
+  - action: "read_only"
+    decision: "allow"
+    requires_human_approval: false
+
+  - action: "task_write"
+    decision: "allow"
+    requires_human_approval: true
+
+  - action: "comment_write"
+    decision: "allow"
+    requires_human_approval: true
+
+  - action: "dependency_write"
+    decision: "allow"
+    requires_human_approval: true
+
+  - action: "email_send"
+    decision: "allow"
+    requires_human_approval: true
+
+  - action: "calendar_write"
+    decision: "allow"
+    requires_human_approval: true
+
+  - action: "pm.create_task"
+    decision: "allow"
+    requires_human_approval: true
+
+  - action: "pm.update_task"
+    decision: "allow"
+    requires_human_approval: true
+
+  - action: "pm.create_comment"
+    decision: "allow"
+    requires_human_approval: true
+
+  - action: "pm.upsert_dependencies"
+    decision: "allow"
+    requires_human_approval: true
+
+  - action: "email.send_reply"
+    decision: "allow"
+    requires_human_approval: true
+
+  - action: "messages.send_message"
+    decision: "allow"
+    requires_human_approval: true
+
+  - action: "slack.send_message"
+    decision: "allow"
+    requires_human_approval: true
+
+  - action: "reminders.create_reminder"
+    decision: "allow"
+    requires_human_approval: true
+
+  - action: "reminders.update_reminder"
+    decision: "allow"
+    requires_human_approval: true
